@@ -193,8 +193,8 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
     let sPositionY = sphereCollider[2] + spherePosition[1];
     let cPositionZ = sphereCollider[3] + spherePosition[2];
 
-    if (cPositionX >= wallXXYYZZ[0] && cPositionX <= wallXXYYZZ[1]) {
-        if (sPositionY >= wallXXYYZZ[2] && sPositionY <= wallXXYYZZ[3]) {
+    if (cPositionX >= wallXXYYZZ[0]-sphereCollider[7] && cPositionX <= wallXXYYZZ[1]+sphereCollider[7]) {
+        if (sPositionY >= wallXXYYZZ[2]-sphereCollider[7] && sPositionY <= wallXXYYZZ[3]+sphereCollider[7]) {
             //sphere is inside the xy box, see if sphere intersect with z
             let z1 = wallXXYYZZ[4] - cPositionZ;
             let z2 = wallXXYYZZ[4] - (cPositionZ + sphereCollider[7]);
@@ -213,8 +213,8 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         }
     }
 
-    if (cPositionZ >= wallXXYYZZ[4] && cPositionZ <= wallXXYYZZ[5]) {
-        if (sPositionY >= wallXXYYZZ[2] && sPositionY <= wallXXYYZZ[3]) {
+    if (cPositionZ >= wallXXYYZZ[4]-sphereCollider[7] && cPositionZ <= wallXXYYZZ[5]+sphereCollider[7]) {
+        if (sPositionY >= wallXXYYZZ[2]-sphereCollider[7] && sPositionY <= wallXXYYZZ[3]+sphereCollider[7]) {
             //sphere is inside the yz box, see if sphere intersect with x
             let x1 = wallXXYYZZ[0] - cPositionX;
             let x2 = wallXXYYZZ[0] - (cPositionX + sphereCollider[7]);
@@ -233,8 +233,8 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         }
     }
 
-    if (cPositionX >= wallXXYYZZ[0] && cPositionX <= wallXXYYZZ[1]) {
-        if (cPositionZ >= wallXXYYZZ[4] && cPositionZ <= wallXXYYZZ[5]) {
+    if (cPositionX >= wallXXYYZZ[0]-sphereCollider[7] && cPositionX <= wallXXYYZZ[1]+sphereCollider[7]) {
+        if (cPositionZ >= wallXXYYZZ[4]-sphereCollider[7] && cPositionZ <= wallXXYYZZ[5]+sphereCollider[7]) {
             //sphere is inside the xz box, see if sphere intersect with y
             let y1 = wallXXYYZZ[2] - sPositionY;
             let y2 = wallXXYYZZ[2] - (sPositionY + sphereCollider[7]);
@@ -266,6 +266,40 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
     }
 
     return spherePhysicalState;
+}
+
+export let sphereToBoxCollision = (sphereCollider, boxCollider, spherePosition, boxPosition, boxRotation, spherePhysicalState, boxPhysicalState) => {
+    // Calculate the actual positions of the box collider after rotation
+    let boxX1Y1Z1 = [boxCollider[1] - boxCollider[7] / 2 + boxPosition[0], boxCollider[2] - boxCollider[8] / 2 + boxPosition[1], boxCollider[3] - boxCollider[9] / 2 + boxPosition[2]];
+    let boxX2Y1Z1 = [boxCollider[1] + boxCollider[7] / 2 + boxPosition[0], boxCollider[2] - boxCollider[8] / 2 + boxPosition[1], boxCollider[3] - boxCollider[9] / 2 + boxPosition[2]];
+    let boxX1Y2Z1 = [boxCollider[1] - boxCollider[7] / 2 + boxPosition[0], boxCollider[2] + boxCollider[8] / 2 + boxPosition[1], boxCollider[3] - boxCollider[9] / 2 + boxPosition[2]];
+    let boxX2Y2Z1 = [boxCollider[1] + boxCollider[7] / 2 + boxPosition[0], boxCollider[2] + boxCollider[8] / 2 + boxPosition[1], boxCollider[3] - boxCollider[9] / 2 + boxPosition[2]];
+    let boxX1Y1Z2 = [boxCollider[1] - boxCollider[7] / 2 + boxPosition[0], boxCollider[2] - boxCollider[8] / 2 + boxPosition[1], boxCollider[3] + boxCollider[9] / 2 + boxPosition[2]];
+    let boxX2Y1Z2 = [boxCollider[1] + boxCollider[7] / 2 + boxPosition[0], boxCollider[2] - boxCollider[8] / 2 + boxPosition[1], boxCollider[3] + boxCollider[9] / 2 + boxPosition[2]];
+    let boxX1Y2Z2 = [boxCollider[1] - boxCollider[7] / 2 + boxPosition[0], boxCollider[2] + boxCollider[8] / 2 + boxPosition[1], boxCollider[3] + boxCollider[9] / 2 + boxPosition[2]];
+    let boxX2Y2Z2 = [boxCollider[1] + boxCollider[7] / 2 + boxPosition[0], boxCollider[2] + boxCollider[8] / 2 + boxPosition[1], boxCollider[3] + boxCollider[9] / 2 + boxPosition[2]];
+
+    let boxCenter = cg.add(boxX1Y1Z1, boxX2Y1Z1);
+    boxCenter = cg.add(boxCenter, boxX1Y2Z1);
+    boxCenter = cg.add(boxCenter, boxX2Y2Z1);
+    boxCenter = cg.add(boxCenter, boxX1Y1Z2);
+    boxCenter = cg.add(boxCenter, boxX2Y1Z2);
+    boxCenter = cg.add(boxCenter, boxX1Y2Z2);
+    boxCenter = cg.add(boxCenter, boxX2Y2Z2);
+    boxCenter[0] = boxCenter[0] / 8;
+    boxCenter[1] = boxCenter[1] / 8;
+    boxCenter[2] = boxCenter[2] / 8;
+
+    boxX1Y1Z1 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX1Y1Z1, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX2Y1Z1 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX2Y1Z1, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX1Y2Z1 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX1Y2Z1, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX2Y2Z1 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX2Y2Z1, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX1Y1Z2 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX1Y1Z2, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX2Y1Z2 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX2Y1Z2, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX1Y2Z2 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX1Y2Z2, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+    boxX2Y2Z2 = cg.add(boxCenter, cg.vec3DRotate(cg.subtract(boxX2Y2Z2, boxCenter), boxRotation[0], boxRotation[1], boxRotation[2]));
+
+    return [spherePhysicalState, boxPhysicalState];
 }
 
 export let simulate = (physicalStates, colliders, walls, positions) => {
