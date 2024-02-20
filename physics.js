@@ -108,10 +108,8 @@ export let sphereToGroundCollision = (collider, position, physicalState) => {
     let cPositionZ = collider[3] + position[2];
 
     if (cPositionY - collider[7] <= 0) {
+        physicalState[9] = collider[7] - cPositionY;
         if (Math.abs(cPositionY - collider[7]) < staticParams) {
-            let support = cg.norm(cg.vec2vecProj([physicalState[8], physicalState[9], physicalState[10]], [0, 1, 0]));
-            physicalState[9] += support;
-
             if (cg.normalize([physicalState[4], 0, physicalState[6]]) > staticParams) {
                 let dir = cg.normalize([-physicsState[4], 0, -physicalState[6]]);
                 let friction = physicalState[2] * physicalState[1] * gravity;
@@ -189,79 +187,40 @@ export let sphereToSphereCollision = (collider1, collider2, position1, position2
 // It can be helpful for simulating sphere hitting room-scale wall or pedestal
 // But noted that the wall cannot be rotated away from XYZ axis
 export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysicalState, wallXXYYZZ) => {
-    let cPositionX = sphereCollider[1] + spherePosition[0];
+    let sPositionX = sphereCollider[1] + spherePosition[0];
     let sPositionY = sphereCollider[2] + spherePosition[1];
-    let cPositionZ = sphereCollider[3] + spherePosition[2];
+    let sPositionZ = sphereCollider[3] + spherePosition[2];
 
-    if (cPositionX >= wallXXYYZZ[0]-sphereCollider[7] && cPositionX <= wallXXYYZZ[1]+sphereCollider[7]) {
-        if (sPositionY >= wallXXYYZZ[2]-sphereCollider[7] && sPositionY <= wallXXYYZZ[3]+sphereCollider[7]) {
-            //sphere is inside the xy box, see if sphere intersect with z
-            let z1 = wallXXYYZZ[4] - cPositionZ;
-            let z2 = wallXXYYZZ[4] - (cPositionZ + sphereCollider[7]);
-            let z3 = wallXXYYZZ[4] - (cPositionZ - sphereCollider[7]);
-            let z4 = wallXXYYZZ[5] - cPositionZ;
-            let z5 = wallXXYYZZ[5] - (cPositionZ + sphereCollider[7]);
-            let z6 = wallXXYYZZ[5] - (cPositionZ - sphereCollider[7]);
+    let x = Math.max(wallXXYYZZ[0], Math.min(sPositionX, wallXXYYZZ[1]));
+    let y = Math.max(wallXXYYZZ[2], Math.min(sPositionY, wallXXYYZZ[3]));
+    let z = Math.max(wallXXYYZZ[4], Math.min(sPositionZ, wallXXYYZZ[5]));
 
-            if ((z1 * z2 < 0 || z1 * z3 < 0) || (z4 * z5 < 0 || z4 * z6 < 0)) {
-                //intersect
-                let centerZ = (wallXXYYZZ[4] + wallXXYYZZ[5]) / 2;
-                if (spherePhysicalState[6] * (centerZ - cPositionZ) > 0) {
-                    spherePhysicalState[6] = -spherePhysicalState[6] / 1.5;
-                }
-            }
+    let distance = cg.distance([sPositionX,sPositionY,sPositionZ], [x,y,z]);
+
+    if (distance < sphereCollider[7]) {
+        let centerX = (wallXXYYZZ[0] + wallXXYYZZ[1]) / 2;
+        let centerY = (wallXXYYZZ[2] + wallXXYYZZ[3]) / 2;
+        let centerZ = (wallXXYYZZ[4] + wallXXYYZZ[5]) / 2;
+        let d = cg.subtract([x,y,z],[sPositionX,sPositionY,sPositionZ]);
+        if (d[0] != 0 && spherePhysicalState[4] * (centerX - sPositionX) > 0) {
+            spherePhysicalState[4] = -spherePhysicalState[4] / 1.5;
         }
-    }
+        if (d[1] != 0) {
+            if (spherePhysicalState[5] * (centerY - sPositionY) > 0)
+                spherePhysicalState[5] = -spherePhysicalState[5] / 1.5;
 
-    if (cPositionZ >= wallXXYYZZ[4]-sphereCollider[7] && cPositionZ <= wallXXYYZZ[5]+sphereCollider[7]) {
-        if (sPositionY >= wallXXYYZZ[2]-sphereCollider[7] && sPositionY <= wallXXYYZZ[3]+sphereCollider[7]) {
-            //sphere is inside the yz box, see if sphere intersect with x
-            let x1 = wallXXYYZZ[0] - cPositionX;
-            let x2 = wallXXYYZZ[0] - (cPositionX + sphereCollider[7]);
-            let x3 = wallXXYYZZ[0] - (cPositionX - sphereCollider[7]);
-            let x4 = wallXXYYZZ[1] - cPositionX;
-            let x5 = wallXXYYZZ[1] - (cPositionX + sphereCollider[7]);
-            let x6 = wallXXYYZZ[1] - (cPositionX - sphereCollider[7]);
-
-            if ((x1 * x2 < 0 || x1 * x3 < 0) || (x4 * x5 < 0 || x4 * x6 < 0)) {
-                //intersect
-                let centerX = (wallXXYYZZ[0] + wallXXYYZZ[1]) / 2;
-                if (spherePhysicalState[4] * (centerX - cPositionX) > 0) {
-                    spherePhysicalState[4] = -spherePhysicalState[4] / 1.5;
-                }
-            }
-        }
-    }
-
-    if (cPositionX >= wallXXYYZZ[0]-sphereCollider[7] && cPositionX <= wallXXYYZZ[1]+sphereCollider[7]) {
-        if (cPositionZ >= wallXXYYZZ[4]-sphereCollider[7] && cPositionZ <= wallXXYYZZ[5]+sphereCollider[7]) {
-            //sphere is inside the xz box, see if sphere intersect with y
-            let y1 = wallXXYYZZ[2] - sPositionY;
-            let y2 = wallXXYYZZ[2] - (sPositionY + sphereCollider[7]);
-            let y3 = wallXXYYZZ[2] - (sPositionY - sphereCollider[7]);
-            let y4 = wallXXYYZZ[3] - sPositionY;
-            let y5 = wallXXYYZZ[3] - (sPositionY + sphereCollider[7]);
-            let y6 = wallXXYYZZ[3] - (sPositionY - sphereCollider[7]);
-
-            if ((y1 * y2 < 0 || y1 * y3 < 0) || (y4 * y5 < 0 || y4 * y6 < 0)) {
-                //intersect
-                let centerY = (wallXXYYZZ[2] + wallXXYYZZ[3]) / 2;
-                if (spherePhysicalState[5] * (centerY - sPositionY) > 0) {
-                    spherePhysicalState[5] = -spherePhysicalState[5] / 1.5;
-                }
-            }
-
+            spherePhysicalState[9] = -d[1];
             if (Math.abs(sPositionY - sphereCollider[7] - wallXXYYZZ[3]) < staticParams) {
-                let support = cg.norm(cg.vec2vecProj([spherePhysicalState[8], spherePhysicalState[9], spherePhysicalState[10]], [0, 1, 0]));
-                spherePhysicalState[9] += support;
-
                 if (cg.normalize([spherePhysicalState[4], 0, spherePhysicalState[6]]) > staticParams) {
                     let dir = cg.normalize([-spherePhysicsState[4], 0, -spherePhysicalState[6]]);
                     let friction = spherePhysicalState[2] * spherePhysicalState[1] * gravity;
                     spherePhysicalState = addForce([dir[0] * friction, 0, dir[2] * friction],
-                                                   [cPositionX, 0, cPositionZ], spherePosition, sphereCollider, spherePhysicalState);
+                                                   [sPositionX, 0, sPositionZ], spherePosition, sphereCollider, spherePhysicalState);
                 }
             }
+        }
+        if (d[2] != 0 && spherePhysicalState[6] * (centerZ - sPositionZ) > 0) {
+            spherePhysicalState[6] = -spherePhysicalState[6] / 1.5;
         }
     }
 
