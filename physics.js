@@ -132,6 +132,9 @@ export let sphereToSphereCollision = (collider1, collider2, position1, position2
     let s1Position = cg.add([collider1[0], collider1[1], collider1[2]], position1);
     let s2Position = cg.add([collider2[0], collider2[1], collider2[2]], position2);
 
+    console.log(cg.distance(s1Position, s2Position));
+    console.log([collider1[7],collider2[7]]);
+
     if (cg.distance(s1Position, s2Position) <= collider1[7] + collider2[7]) {
         let aToB = cg.normalize(cg.subtract(s2Position, s1Position));
         let gA = [0, physicalState1[0] * gravity, 0];
@@ -304,7 +307,7 @@ export let simulate = (physicalStates, colliders, walls, positions) => {
             for (let j = i + 1; j < colliders.length; j++) {
                 for (let n = 0; n < colliders[sort[j]].length; n += 10) {
                     let collider1 = colliders[sort[i]].slice(m, m + 9);
-                    let collider2 = colliders[sort[i]].slice(n, n + 9);
+                    let collider2 = colliders[sort[j]].slice(n, n + 9);
 
                     let physicalState1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                     let physicalState2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
