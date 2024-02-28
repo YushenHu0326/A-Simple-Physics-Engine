@@ -121,6 +121,8 @@ export let sphereToGroundCollision = (collider, position, physicalState) => {
         if (physicalState[5] < 0) {
             physicalState[5] = -physicalState[5] / 1.5;
         }
+
+        physicalState[5] += collider[7]-cPositionY;
     }
 
     return physicalState;
@@ -178,6 +180,14 @@ export let sphereToSphereCollision = (collider1, collider2, position1, position2
             physicalState2[5] = bvn[1]+bvp[1];
             physicalState2[6] = bvn[2]+bvp[2];
         }
+
+        physicalState1[4] += -aToB[0]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        physicalState1[5] += -aToB[1]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        physicalState1[6] += -aToB[2]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+
+        physicalState2[4] += aToB[0]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        physicalState2[5] += aToB[1]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        physicalState2[6] += aToB[2]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
     }
 
     return [physicalState1, physicalState2];
@@ -204,10 +214,13 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         let d = cg.subtract([x,y,z],[sPositionX,sPositionY,sPositionZ]);
         if (d[0] != 0 && spherePhysicalState[4] * (centerX - sPositionX) > 0) {
             spherePhysicalState[4] = -spherePhysicalState[4] / 1.5;
+            spherePhysicalState[8] += d[0];
         }
         if (d[1] != 0) {
             if (spherePhysicalState[5] * (centerY - sPositionY) > 0)
+            {
                 spherePhysicalState[5] = -spherePhysicalState[5] / 1.5;
+            }
 
             spherePhysicalState[9] = -d[1];
             if (Math.abs(sPositionY - sphereCollider[7] - wallXXYYZZ[3]) < staticParams) {
@@ -221,6 +234,7 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         }
         if (d[2] != 0 && spherePhysicalState[6] * (centerZ - sPositionZ) > 0) {
             spherePhysicalState[6] = -spherePhysicalState[6] / 1.5;
+            spherePhysicalState[10] += d[2];
         }
     }
 
@@ -269,21 +283,37 @@ export let simulate = (physicalStates, colliders, walls, positions) => {
         physicalStates[i] = physicalState;
     }
     // Calculate collision
+    // Sorted by the height of the object
+    let sort = [];
+    for (let i = 0; i < positions.length; i++) {
+        sort.push(i);
+    }
+
+    for (let i = 0; i < positions.length - 1; i++) {
+        for (let j = i; j < positions.length - 1; j++) {
+            if (positions[sort[i]][1] > positions[sort[j]][1]) {
+                let temp = sort[i];
+                sort[i] = sort[j];
+                sort[j] = temp;
+            }
+        }
+    }
+
     for (let i = 0; i < colliders.length - 1; i++) {
-        for (let m = 0; m < colliders[i].length; m += 10) {
+        for (let m = 0; m < colliders[sort[i]].length; m += 10) {
             for (let j = i + 1; j < colliders.length; j++) {
-                for (let n = 0; n < colliders[j].length; n += 10) {
-                    let collider1 = colliders[i].slice(m, m + 9);
-                    let collider2 = colliders[i].slice(n, n + 9);
+                for (let n = 0; n < colliders[sort[j]].length; n += 10) {
+                    let collider1 = colliders[sort[i]].slice(m, m + 9);
+                    let collider2 = colliders[sort[i]].slice(n, n + 9);
 
                     let physicalState1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                     let physicalState2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
                     if (collider1[0] == 0) {
                         if (collider2[0] == 0) {
-                            [physicalState1, physicalState2] = sphereToSphereCollision(collider1, collider2, positions[i], positions[j], physicalStates[i], physicalStates[j]);
-                            physicalStates[i] = physicalState1;
-                            physicalStates[j] = physicalState2;
+                            [physicalState1, physicalState2] = sphereToSphereCollision(collider1, collider2, positions[sort[i]], positions[sort[j]], physicalStates[sort[i]], physicalStates[sort[j]]);
+                            physicalStates[sort[i]] = physicalState1;
+                            physicalStates[sort[j]] = physicalState2;
                         }
                     }
                 }
