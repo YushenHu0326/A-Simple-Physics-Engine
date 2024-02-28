@@ -289,8 +289,8 @@ export let simulate = (physicalStates, colliders, walls, positions) => {
         sort.push(i);
     }
 
-    for (let i = 0; i < positions.length - 1; i++) {
-        for (let j = i; j < positions.length - 1; j++) {
+    for (let i = 0; i < positions.length; i++) {
+        for (let j = i; j < positions.length; j++) {
             if (positions[sort[i]][1] > positions[sort[j]][1]) {
                 let temp = sort[i];
                 sort[i] = sort[j];
@@ -299,7 +299,7 @@ export let simulate = (physicalStates, colliders, walls, positions) => {
         }
     }
 
-    for (let i = 0; i < colliders.length - 1; i++) {
+    for (let i = 0; i < colliders.length; i++) {
         for (let m = 0; m < colliders[sort[i]].length; m += 10) {
             for (let j = i + 1; j < colliders.length; j++) {
                 for (let n = 0; n < colliders[sort[j]].length; n += 10) {
