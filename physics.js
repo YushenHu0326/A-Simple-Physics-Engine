@@ -132,23 +132,8 @@ export let sphereToSphereCollision = (collider1, collider2, position1, position2
     let s1Position = cg.add([collider1[0], collider1[1], collider1[2]], position1);
     let s2Position = cg.add([collider2[0], collider2[1], collider2[2]], position2);
 
-    console.log(cg.distance(s1Position, s2Position));
-    console.log([collider1[7],collider2[7]]);
-
     if (cg.distance(s1Position, s2Position) <= collider1[7] + collider2[7]) {
         let aToB = cg.normalize(cg.subtract(s2Position, s1Position));
-        let gA = [0, physicalState1[0] * gravity, 0];
-        let gB = [0, physicalState2[0] * gravity, 0];
-        let fnA = cg.vec2vecProj(gA, [-aToB[0], -aToB[1], -aToB[2]]);
-        let fnB = cg.vec2vecProj(gB, aToB);
-
-        physicalState1[8] += fnA[0] / physicalState1[0];
-        physicalState1[9] += fnA[1] / physicalState1[0];
-        physicalState1[10] += fnA[2] / physicalState1[0];
-
-        physicalState2[8] += fnB[0] / physicalState2[0];
-        physicalState2[9] += fnB[1] / physicalState2[0];
-        physicalState2[10] += fnB[2] / physicalState2[0];
 
         let n = aToB;
 
@@ -184,13 +169,18 @@ export let sphereToSphereCollision = (collider1, collider2, position1, position2
             physicalState2[6] = bvn[2]+bvp[2];
         }
 
-        physicalState1[4] += -aToB[0]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
-        physicalState1[5] += -aToB[1]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
-        physicalState1[6] += -aToB[2]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        let fnA = cg.vec2vecProj([physicalState1[8] * physicalState1[1], physicalState1[9] * physicalState1[1], physicalState1[10] * physicalState1[1]], aToB);
+        let fnB = cg.vec2vecProj([physicalState2[8] * physicalState2[1], physicalState2[9] * physicalState2[1], physicalState2[10] * physicalState2[1]], cg.scale(aToB, -1));
 
-        physicalState2[4] += aToB[0]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
-        physicalState2[5] += aToB[1]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
-        physicalState2[6] += aToB[2]*(collider1[7]+collider2[7]-cg.distance(s1Position, s2Position));
+        if (cg.dot(fnA, aToB) > 0) {
+            physicalState1 = addForce(cg.scale(fnA,-1), position1, position1, collider1, physicalState1);
+            physicalState2 = addForce(fnA, position2, position2, collider2, physicalState2);
+        }
+
+        if (cg.dot(fnB, cg.scale(aToB, -1)) > 0) {
+            physicalState1 = addForce(fnB, position1, position1, collider1, physicalState1);
+            physicalState2 = addForce(cg.scale(fnB,-1), position2, position2, collider2, physicalState2);
+        }
     }
 
     return [physicalState1, physicalState2];
@@ -214,10 +204,16 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         let centerX = (wallXXYYZZ[0] + wallXXYYZZ[1]) / 2;
         let centerY = (wallXXYYZZ[2] + wallXXYYZZ[3]) / 2;
         let centerZ = (wallXXYYZZ[4] + wallXXYYZZ[5]) / 2;
-        let d = cg.subtract([x,y,z],[sPositionX,sPositionY,sPositionZ]);
+        let d = cg.subtract([x, y, z], [sPositionX, sPositionY, sPositionZ]);
+
+        spherePhysicalState = addForce(d, spherePosition, spherePosition, sphereCollider, spherePhysicalState);
         if (d[0] != 0 && spherePhysicalState[4] * (centerX - sPositionX) > 0) {
             spherePhysicalState[4] = -spherePhysicalState[4] / 1.5;
-            spherePhysicalState[8] += d[0];
+
+            if (Math.abs(d[0]) > staticParams)
+                spherePhysicalState[8] = -d[0]*20;
+            else
+                spherePhysicalState[8] = 0;
         }
         if (d[1] != 0) {
             if (spherePhysicalState[5] * (centerY - sPositionY) > 0)
@@ -225,10 +221,13 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
                 spherePhysicalState[5] = -spherePhysicalState[5] / 1.5;
             }
 
-            spherePhysicalState[9] = -d[1];
+            if (Math.abs(d[1]) > staticParams)
+                spherePhysicalState[9] = -d[1] * 20;
+            else
+                spherePhysicalState[9] = 0;
             if (Math.abs(sPositionY - sphereCollider[7] - wallXXYYZZ[3]) < staticParams) {
-                if (cg.normalize([spherePhysicalState[4], 0, spherePhysicalState[6]]) > staticParams) {
-                    let dir = cg.normalize([-spherePhysicsState[4], 0, -spherePhysicalState[6]]);
+                if (cg.norm([spherePhysicalState[4], 0, spherePhysicalState[6]]) > staticParams) {
+                    let dir = cg.normalize([-spherePhysicalState[4], 0, -spherePhysicalState[6]]);
                     let friction = spherePhysicalState[2] * spherePhysicalState[1] * gravity;
                     spherePhysicalState = addForce([dir[0] * friction, 0, dir[2] * friction],
                                                    [sPositionX, 0, sPositionZ], spherePosition, sphereCollider, spherePhysicalState);
@@ -237,7 +236,11 @@ export let sphereToWallCollision = (sphereCollider, spherePosition, spherePhysic
         }
         if (d[2] != 0 && spherePhysicalState[6] * (centerZ - sPositionZ) > 0) {
             spherePhysicalState[6] = -spherePhysicalState[6] / 1.5;
-            spherePhysicalState[10] += d[2];
+
+            if (Math.abs(d[2]) > staticParams)
+                spherePhysicalState[10] = -d[2] * 20;
+            else
+                spherePhysicalState[10] = 0;
         }
     }
 
@@ -294,7 +297,7 @@ export let simulate = (physicalStates, colliders, walls, positions) => {
 
     for (let i = 0; i < positions.length; i++) {
         for (let j = i; j < positions.length; j++) {
-            if (positions[sort[i]][1] > positions[sort[j]][1]) {
+            if (positions[sort[i]][1] < positions[sort[j]][1]) {
                 let temp = sort[i];
                 sort[i] = sort[j];
                 sort[j] = temp;
